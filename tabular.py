@@ -4,7 +4,7 @@
 
 # - - - - PROGRAM INPUTS - - - - -
 input_letters = 'ABCD'
-minterms = [2,4,8,6,9,10,12,13,15]
+minterms = [0,1,3,7,8,9,11,15]#[2,4,8,6,9,10,12,13,15]
 dont_cares = []
 # - - - - - - - - - - - - - - - - 
 
@@ -99,10 +99,19 @@ changes = 1
 no_matches = []
 had_a_match = []
 err = False
+iteration = 1
 while changes > 0 and not err:
 	old_tabs = tabs
 	tabs = {}
 	changes = 0
+
+	print 'TABLE',iteration
+	for tab in old_tabs:
+		if len(old_tabs[tab]) > 0:
+			printTabs(old_tabs[tab])
+			print '-'*(max_bin_length*5)
+	iteration += 1
+	print ''
 
 	for k in old_tabs:
 		tabs[k] = []
@@ -139,6 +148,10 @@ while changes > 0 and not err:
 					no_matches.append(val)
 
 
+for d in dont_cares:
+	if d in no_matches:
+		no_matches.remove(d)
+
 print 'TABLE REDUCTION RESULTS:'
 printTabs(no_matches)
 print ''
@@ -160,11 +173,11 @@ for m in no_matches:
 		if not int(i) in dec_nums:
 			dec_nums.append(int(i))
 
+
 # numbers that only occur once
 dec_num_singles = [int(num) for num,count in dec_num_count.iteritems() if count == 1]
 # sort numbers by number of occurrences in term dict
 dec_nums = sorted(dec_nums, key=lambda num: dec_num_count[str(num)])
-
 
 table_vals = {}
 term_size = {}
@@ -174,36 +187,70 @@ for m in no_matches:
 # sort by number of numbers the term covers
 term_priority = sorted(no_matches, key=lambda term: len(table_vals[term]), reverse=True)
 
-# move terms with a single number to the front
-temp_t = []
-for term in term_priority:
-	for single in dec_num_singles:
-		if str(single) in table_vals[term] and not term in temp_t:
-			temp_t.append(term)
-			
-temp_t.extend(diff(term_priority,temp_t))
-term_priority = temp_t
+# FIND BEST TERM TO REMOVE
+#	1. has a unique number
+#	2. has the most numbers in remaining_nums
 
-end_terms = []
-# remove implicants adn the numbers they cover until nothing is left
-for term in term_priority:
-	removed = 0
-	# print 'LOOKIN AT:',termToLetters(term),'(',table_vals[term],')',dec_nums
+finalists = []
+remaining_nums = dec_nums
+
+def addFinalist(term):
+	finalists.append(term)
+
+	if term in no_matches:
+		no_matches.remove(term)
+
 	for num in table_vals[term]:
-		if int(num) in dec_nums:
-			dec_nums.remove(int(num))
-			removed += 1
+		if int(num) in remaining_nums:
+			for t in table_vals:
+				if t != term and num in table_vals[t]:
+					table_vals[t].remove(num)
 
-			if not term in end_terms:
-				end_terms.append(term)
+		if int(num) in remaining_nums:
+			remaining_nums.remove(int(num))
+
+		if int(num) in dec_num_singles:
+			dec_num_singles.remove(int(num))
+
+	del table_vals[term]
+
+while len(remaining_nums) > 0:
+	# FIND BEST TERM
+	# sort by number array size
+	term_priority = sorted(no_matches, key=lambda term: len(table_vals[term]), reverse=True)
+	# bring singles to the front
+	temp_t = []
+	for term in term_priority:
+		for single in dec_num_singles:
+			if str(single) in table_vals[term] and not term in temp_t:
+				temp_t.append(term)
+				
+	temp_t.extend(diff(term_priority,temp_t))
+	term_priority = temp_t
+
+	term = term_priority[0]
+
+	#pick a single if it exists
+	single_exists = False
+	for s in dec_num_singles:
+		# does term contain a single
+		if not single_exists and str(s) in table_vals[term]:
+			single_exists = True
+
+			# remove terms numbers
+			addFinalist(term)
+
+	# remove largest term
+	if not single_exists:
+		addFinalist(term)
 
 ### PART 3 ### Print results
 end_str = 'Z = '
 
-for t,term in enumerate(end_terms):
+for t,term in enumerate(finalists):
 	end_str += termToLetters(term)
 
-	if t < len(end_terms) - 1:
+	if t < len(finalists) - 1:
 		end_str += ' + '
 
 print end_str
