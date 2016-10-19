@@ -4,7 +4,7 @@
 
 # - - - - PROGRAM INPUTS - - - - -
 input_letters = 'ABCD'
-minterms = [4,8,10,11,12,15]
+minterms = [2,4,8,6,9,10,12,13,15]
 dont_cares = []
 # - - - - - - - - - - - - - - - - 
 
@@ -54,7 +54,9 @@ def termToLetters(term):
 			ret_str += input_letters[i]
 	return ret_str
 
-
+def diff(first, second):
+        second = set(second)
+        return [item for item in first if item not in second]
 
 ### PART 1 ### Reduction tables
 
@@ -82,7 +84,7 @@ def bin_compare(a,b):
 	diff_pos = -1
 
 	for c in range(len(a)):
-		if not (a[c] == '-' and b[c] == '-') and (a[c] != b[c]):
+		if (a[c] != b[c]):
 			diff_count += 1
 			diff_pos = c
 
@@ -102,30 +104,40 @@ while changes > 0 and not err:
 	tabs = {}
 	changes = 0
 
-	#iterate through groups
-	for i in old_tabs:
-		tabs[i] = []
-		group = old_tabs[i]
-		if (i < len(old_tabs) - 1):
+	for k in old_tabs:
+		tabs[k] = []
 
-			# iterate through group members
-			for t1 in group:
-				indiv_results = 0
+		if (k+1) in old_tabs and len(old_tabs[k+1]) > 0:
+			for val1 in old_tabs[k]:
+				for val2 in old_tabs[k+1]:
 
-				if i + 1 in old_tabs:
-					for t2 in old_tabs[i + 1]:
-						result = bin_compare(t1, t2)
+					result = bin_compare(val1, val2)
 
-						if result != 0:
-							indiv_results += 1
-							changes += 1
+					if result:
+						if result not in tabs[k]:
+							tabs[k].append(result)
+						changes += 1
 
-							had_a_match.extend((t1,t2))
+						if not val1 in had_a_match:
+							had_a_match.append(val1)
+						if not val2 in had_a_match:
+							had_a_match.append(val2)
+						
+						if val1 in no_matches:
+							no_matches.remove(val1)
+						if val2 in no_matches:
+							no_matches.remove(val2)
+					else:
+						if not val1 in had_a_match and not val1 in no_matches:
+							no_matches.append(val1)
+						if not val2 in had_a_match and not val2 in no_matches:
+							no_matches.append(val2)
 
-							tabs[i].append(result)
+		else:
+			for val in old_tabs[k]:
+				if not val in had_a_match and not val in no_matches:
+					no_matches.append(val)
 
-					if indiv_results == 0 and not t1 in had_a_match and not t1 in no_matches:
-						no_matches.append(t1)
 
 print 'TABLE REDUCTION RESULTS:'
 printTabs(no_matches)
@@ -168,17 +180,15 @@ for term in term_priority:
 	for single in dec_num_singles:
 		if str(single) in table_vals[term] and not term in temp_t:
 			temp_t.append(term)
-
-for term in term_priority:
-	if not term in temp_t:
-		temp_t.append(term)
-
+			
+temp_t.extend(diff(term_priority,temp_t))
 term_priority = temp_t
 
 end_terms = []
 # remove implicants adn the numbers they cover until nothing is left
 for term in term_priority:
 	removed = 0
+	# print 'LOOKIN AT:',termToLetters(term),'(',table_vals[term],')',dec_nums
 	for num in table_vals[term]:
 		if int(num) in dec_nums:
 			dec_nums.remove(int(num))
