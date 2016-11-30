@@ -4,15 +4,22 @@
 
 # - - - - PROGRAM INPUTS - - - - -
 input_letters = 'ABCD'
-minterms = [0,1,3,7,8,9,11,15]#[2,4,8,6,9,10,12,13,15]
+minterms = [0,1,2,3,5,7,8,10,12,13,15]
 dont_cares = []
-# - - - - - - - - - - - - - - - - 
+# - - - - -------------- - - - - - 
 
+# print the minterms/dont cares
+out_str = 'f(' + ','.join(list(input_letters)) + ') = E m('
+for m in minterms:
+	out_str += str(m) + ', '
+out_str = out_str[:-2] + ')'
 
-
-
-import pprint
-pp = pprint.PrettyPrinter(indent=4)
+if len(dont_cares) > 0:
+	out_str += ' + d('
+	for d in dont_cares:
+		out_str += str(d) + ', '
+out_str = out_str[:-2] + ')'
+print out_str,'\n'
 
 bin_inputs = []
 max_bin_length = 0
@@ -156,7 +163,10 @@ print 'TABLE REDUCTION RESULTS:'
 printTabs(no_matches)
 print ''
 
-### PART 2 ### Weird grid thing
+### PART 2 ### Prime implicant chart
+
+if len(no_matches) > 1:
+	print 'Using prime implicant chart... \n'
 
 no_matches = sorted(no_matches, key=lambda term: term.count('-'), reverse=True)
 dec_nums = []
